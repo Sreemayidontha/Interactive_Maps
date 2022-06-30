@@ -1,0 +1,187 @@
+import numpy as np
+import pandas as pd
+import plotly as py
+#Plotly Components
+import plotly.express as px
+import plotly.graph_objs as go
+from plotly.subplots import make_subplots
+from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
+import requests
+from bs4 import BeautifulSoup
+import json
+
+
+def climat_change():
+    df=pd.read_csv("C:/Users/Sreemayi Dontha/OneDrive/Desktop/datasets/GlobalLandTemperaturesByCountry.csv")
+    df = df.drop("AverageTemperatureUncertainty", axis=1)
+    df = df.rename(columns={'dt':'Date'})
+    df = df.rename(columns={'AverageTemperature':'AvTemp'})
+    df = df.dropna()
+    df_countries = df.groupby( ['Country','Date']).sum().reset_index().sort_values('Date', ascending=False)
+    start_date = '2011-01-01' 
+    end_date = '2013-01-01' 
+    mask = (df_countries['Date'] > start_date) & (df_countries['Date'] <= end_date) 
+    df_countries = df_countries.loc[mask]
+    #Creating the visualization
+    fig = go.Figure(data=go.Choropleth( locations = df_countries['Country'], locationmode = 'country names', z = df_countries['AvTemp'], colorscale = 'Reds', marker_line_color = 'black', marker_line_width = 0.5, ))
+    fig.update_layout( title_text = 'Climate Change', title_x = 0.5, geo=dict( showframe = False, showcoastlines = False, projection_type = 'equirectangular' ) ) 
+    fig.show()
+    print("...............................")
+    waking()
+def avg_temp_change():
+    df=pd.read_csv("C:/Users/Sreemayi Dontha/OneDrive/Desktop/datasets/GlobalLandTemperaturesByCountry.csv")
+    df = df.drop("AverageTemperatureUncertainty", axis=1)
+    df = df.rename(columns={'dt':'Date'})
+    df = df.rename(columns={'AverageTemperature':'AvTemp'})
+    df = df.dropna()
+    df_countries = df.groupby( ['Country','Date']).sum().reset_index().sort_values('Date', ascending=False)
+    start_date = '2011-01-01' 
+    end_date = '2013-01-01' 
+    mask = (df_countries['Date'] > start_date) & (df_countries['Date'] <= end_date) 
+    df_countries = df_countries.loc[mask]
+    # Manipulating the original dataframe 
+    df_countrydate = df_countries.groupby(['Date','Country']). sum().reset_index() 
+    #Creating the visualization 
+    fig = px.choropleth(df_countrydate, locations="Country", locationmode = "country names", color="AvTemp", hover_name="Country", animation_frame="Date" ) 
+    fig.update_layout( title_text = 'Average Temperature Change', title_x = 0.5, geo=dict( showframe = False, showcoastlines = False, )) 
+    fig.show()
+    print("...............................")
+    waking()
+def covid():
+    response=requests.get("https://api.covid19api.com/summary").text
+    response_info=json.loads(response)
+    country_list=[]
+    for country_info in response_info['Countries']:
+        country_list.append([country_info['Country'],country_info['TotalConfirmed']]) 
+    country_df=pd.DataFrame(data=country_list,columns=['Country','TotalConfirmed'])
+    #Creating the visualization
+    fig = go.Figure(data=go.Choropleth( locations = country_df['Country'], locationmode = 'country names', z = country_df['TotalConfirmed'], colorscale = 'Blues', marker_line_color = 'black', marker_line_width = 0.5, ))
+    fig.update_layout( title_text = 'Covid Case', title_x = 0.5, geo=dict( showframe = False, showcoastlines = False, projection_type = 'equirectangular' ) ) 
+    fig.show()
+    print("...............................")
+    waking()
+def pop_density():
+    india_states = json.load(open("C:/Users/Sreemayi Dontha/OneDrive/Desktop/datasets/states_india1.geojson", "r"))
+    state_id_map = {}
+    for feature in india_states["features"]:
+        feature["id"] = feature["properties"]["state_code"]
+        state_id_map[feature["properties"]["st_nm"]] = feature["id"]
+    df = pd.read_csv("C:/Users/Sreemayi Dontha/OneDrive/Desktop/datasets/population11.csv")
+    df["Density"] = df["Density[a]"].apply(lambda x: int(x.split("/")[0].replace(",", "")))
+    df["id"] = df["State or union territory"].apply(lambda x: state_id_map[x])
+    df["DensityScale"] = np.log10(df["Density"])
+    fig = px.choropleth(
+    df,
+    locations="id",
+    geojson=india_states,
+    color="DensityScale",
+    hover_name="State or union territory",
+    hover_data=["Density"],
+    title="India Population Density",
+    )
+    fig.update_geos(fitbounds="locations", visible=False)
+    fig.show()
+    print("...............................")
+    waking()
+def sex_ratio():
+    india_states = json.load(open("C:/Users/Sreemayi Dontha/OneDrive/Desktop/datasets/states_india1.geojson", "r"))
+    state_id_map = {}
+    for feature in india_states["features"]:
+        feature["id"] = feature["properties"]["state_code"]
+        state_id_map[feature["properties"]["st_nm"]] = feature["id"]
+    df = pd.read_csv("C:/Users/Sreemayi Dontha/OneDrive/Desktop/datasets/population11.csv")
+    df["Density"] = df["Density[a]"].apply(lambda x: int(x.split("/")[0].replace(",", "")))
+    df["id"] = df["State or union territory"].apply(lambda x: state_id_map[x])
+    df["SexRatioScale"] = df["Sex ratio"] - 1000
+    fig = px.choropleth(
+    df,
+    locations="id",
+    geojson=india_states,
+    color="SexRatioScale",
+    hover_name="State or union territory",
+    hover_data=["Sex ratio"],
+    title="India Sex Ratio",
+    color_continuous_scale=px.colors.diverging.BrBG,
+    color_continuous_midpoint=0,
+    )
+    fig.update_geos(fitbounds="locations", visible=False)
+    fig.show()
+    print("...............................")
+    waking()
+def crime_rate():
+    df1 = pd.read_csv("C:/Users/Sreemayi Dontha/OneDrive/Desktop/datasets/crimerate1.csv")
+    india_states = json.load(open("C:/Users/Sreemayi Dontha/OneDrive/Desktop/datasets/states_india1.geojson", "r"))
+    state_id_map = {}
+    for feature in india_states["features"]:
+        feature["id"] = feature["properties"]["state_code"]
+        state_id_map[feature["properties"]["st_nm"]] = feature["id"]
+    df1["id"] = df1["State"].apply(lambda x: state_id_map[x])
+    df1["Crime Rate"]=df1["Crime Rate"]*100
+    fig1 = px.choropleth(
+    df1,
+    locations="id",
+    geojson=india_states,
+    color="Crime Rate",
+    hover_name="State",
+    hover_data=["Crime Rate"],
+    title="India Crime Rate",
+    
+    )
+    fig1.update_geos(fitbounds="locations", visible=False)
+    fig1.show()
+    print("...............................")
+    waking()
+def poverty():
+    dfsp1 = pd.read_csv("C:/Users/Sreemayi Dontha/OneDrive/Desktop/datasets/poverty1.csv")
+    india_states = json.load(open("C:/Users/Sreemayi Dontha/OneDrive/Desktop/datasets/states_india1.geojson", "r"))
+    state_id_map = {}
+    for feature in india_states["features"]:
+        feature["id"] = feature["properties"]["state_code"]
+        state_id_map[feature["properties"]["st_nm"]] = feature["id"]
+    dfsp1["id"] = dfsp1["State/UT"].apply(lambda x: state_id_map[x])
+    fig11 = px.choropleth(
+    dfsp1,
+    locations="id",
+    geojson=india_states,
+    color="% of population living below the national poverty percentage",
+    hover_name="State/UT",
+    hover_data=["% of population living below the national poverty percentage"],
+    title="India Poverty Rate",
+    color_continuous_scale=px.colors.diverging.BrBG,
+    )
+    fig11.update_geos(fitbounds="locations", visible=False)
+    fig11.show()
+    print("...............................")
+    waking()
+def waking():
+    print("1.CLIMATE CHANGE")
+    print("2.AVERAGE TEMPERATURE CHANGE") 
+    print("3.COVID CASES") 
+    print("4.POPULATION DENSITY")
+    print("5.SEX RATIO") 
+    print("6.CRIME RATE")
+    print("7.POVERTY")
+    print("8.EXIT")
+    i=int(input())
+    if i==1: 
+        climat_change()
+    elif i==2:
+        avg_temp_change()
+    elif i==3:
+        covid()
+    elif i==4: 
+        pop_density()
+    elif i==5:
+        sex_ratio() 
+    elif i==6:
+        crime_rate() 
+    elif i==7:
+            poverty()
+    elif i==8:
+            exit() 
+    elif i not in [1,2,3,4,5,6,7,8]:
+        print("INVALID INPUT")
+        print("......................................")
+        waking()
+waking()
+    
